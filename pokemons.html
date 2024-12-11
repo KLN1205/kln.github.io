@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        async function afficherPokemon() {
+            let url ="https://tyradex.app/api/v1/pokemon";
+            try {
+                const reponse = await fetch(url, {
+                    method: "GET",
+                });
+                const donnees = await reponse.json();
+                console.log("Réussite : ", donnees)
+            } catch (erreur) {
+                console.log("Erreur : ", erreur);
+            }
+        }
+        afficherPokemon();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <title>Document</title>
+</head>
+<style>
+    #map {
+        height: 500px;
+        margin-bottom: 5%;
+    }
+
+    #title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    #bouton {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    img {
+        width: 50px;
+        height: 50px;
+    }
+
+    table {
+        display: flex;
+        justify-content: center;
+    }
+</style>
+
+<body>
+    <div id="title">
+        <h1>Pokemons</h1>
+    </div>
+    <div id="map"></div>
+
+    <div id="bouton">
+        <button style="height: 5rem; width: 7rem;" type="button" class="btn btn-secondary" id="btnCarte">Carte</button>
+        <button style="height: 5rem; width: 7rem;" id="pokemons" type="button" class="btn btn-primary">Pokémons</button>
+    </div>
+    <div id="table">
+        <table id="tableau" class="table table-striped"></table>
+    </div>
+</body>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    //la carte
+    const map = L.map('map').setView([46.2044, 6.1432], 12);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: '...'
+    }).addTo(map);
+
+    //Fonction pour afficher les Pokémons
+    async function afficherPokemon() {
+        let url = "https://tyradex.app/api/v1/pokemon";
+        try {
+            const reponse = await fetch(url, {
+                method: "GET",
+            });
+            const donnees = await reponse.json();
+
+            console.log("Réussite : ", donnees);
+
+            remplirTableau(donnees);
+
+        } catch (erreur) {
+            console.log("Erreur : ", erreur);
+        }
+    }
+
+    function remplirTableau(pokemons) {
+        const tableau = document.getElementById("tableau");
+
+        tableau.innerHTML = `
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Generation</th>
+                    <th>Images</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
+
+        const tbody = tableau.querySelector("tbody");
+        pokemons.forEach((pokemon, index) => {
+            if (index > 0) {
+                const ligne = document.createElement("tr");
+                ligne.innerHTML = `
+                    <td>${index}</td>
+                    <td>${pokemon.name.fr}</td>
+                    <td>${pokemon.egg_groups?.join(', ') ?? 'Pas informé'}</td>
+                    <td>${pokemon.generation}</td>
+                    <td><img src="${pokemon.sprites.regular}" alt="Image de ${pokemon.name.fr}"></td>
+                    <td><button type="button" class="btn btn-success">Ajouter</button></td>
+                `;
+                const btnAjouter = ligne.querySelector("button");
+                btnAjouter.addEventListener("click", () => ajouter(pokemon));
+                tbody.appendChild(ligne);
+            }
+        });
+    }
+
+    afficherPokemon();
+    const tableau = document.getElementById("tableau");
+    const carte = document.getElementById('map');
+    const btnPokemon = document.getElementById('pokemons');
+    const btnCarte = document.getElementById('btnCarte');
+
+    tableau.style.display = "none";
+
+    btnCarte.addEventListener('click', afficherCarte);
+    btnPokemon.addEventListener('click', afficherListe);
+
+    function afficherCarte() {
+        tableau.style.display = "none";
+        carte.style.display = "block";
+    }
+
+    function afficherListe() {
+        tableau.style.display = "block";
+        carte.style.display = "none";
+    }
+
+    function ajouter(pokemon) {
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                position => {
+                    const userCoords = [position.coords.latitude, position.coords.longitude];
+
+                    L.marker(userCoords, {
+                        icon: L.icon({
+                            iconUrl: pokemon.sprites.regular,
+                            iconSize: [50, 50]
+                        })
+                    })
+                    .addTo(map)
+                    .bindPopup(`${pokemon.name.fr} a été trouvé ici !`)
+                    .openPopup();
+
+                    map.setView(userCoords, 13);
+                },
+                error => {
+                    console.error("Erreur de géolocalisation :", error.message);
+                }
+            );
+        } else {
+            console.error("La géolocalisation n'est pas supportée par ce navigateur.");
+        }
+    }
+</script>
+
+</html>
